@@ -114,6 +114,9 @@
 <script setup>
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const userStats = ref({
   favorites: 12,
@@ -122,7 +125,7 @@ const userStats = ref({
 })
 
 const navigateTo = (section) => {
-  ElMessage.info(`跳转到${getSectionName(section)}`)
+  router.push(`/settings/${section}`)
 }
 
 const getSectionName = (section) => {

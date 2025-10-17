@@ -98,28 +98,85 @@
                 </el-tag>
               </div>
             </div>
+            <div class="info-item">
+              <span class="info-label">浏览量：</span>
+              <span class="info-value">{{ currentPoem.views || 0 }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">点赞数：</span>
+              <span class="info-value">{{ currentPoem.like_count || 0 }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">评论数：</span>
+              <span class="info-value">{{ currentPoem.comment_count || 0 }}</span>
+            </div>
+          </div>
+        </el-card>
+
+        <!-- 操作按钮 -->
+        <el-card class="actions-section" shadow="hover">
+          <template #header>
+            <h3 class="section-title">
+              <i class="fas fa-cog"></i>
+              操作
+            </h3>
+          </template>
+          <div class="actions-content">
+            <el-button type="primary" @click="addToFavorites" class="action-btn">
+              <i class="fas fa-heart"></i>
+              收藏
+            </el-button>
+            <el-button type="success" @click="sharePoem" class="action-btn">
+              <i class="fas fa-share"></i>
+              分享
+            </el-button>
+            <el-button type="info" @click="regenerateAnalysis" class="action-btn">
+              <i class="fas fa-sync"></i>
+              重新生成赏析
+            </el-button>
+            <el-button v-if="isUserPoem" type="warning" @click="editPoem" class="action-btn">
+              <i class="fas fa-edit"></i>
+              编辑
+            </el-button>
+            <el-button v-if="isUserPoem" type="danger" @click="deletePoem" class="action-btn">
+              <i class="fas fa-trash"></i>
+              删除
+            </el-button>
           </div>
         </el-card>
       </div>
     </main>
   </div>
   
+  <div v-else-if="loading" class="loading-container">
+    <el-skeleton :rows="6" animated />
+  </div>
   <div v-else class="loading-container">
     <el-empty description="诗词不存在" />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { usePoetryStore } from '../stores/poetry'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { getImageByPoemId } from '../config/images.js'
 
 const router = useRouter()
+const route = useRoute()
 const poetryStore = usePoetryStore()
 
 const currentPoem = ref(null)
 const aiAnalysis = ref('')
+const loading = ref(false)
+
+// 检查是否是用户创作的诗词
+const isUserPoem = computed(() => {
+  if (!currentPoem.value) return false
+  const userPoems = JSON.parse(localStorage.getItem('user_poems') || '[]')
+  return userPoems.some(p => p.id === currentPoem.value.id)
+})
 
 const poemLines = computed(() => {
   if (!currentPoem.value) return []
@@ -138,6 +195,86 @@ const generateAIAnalysis = (poem) => {
   return analyses[poem.id] || '这首诗词意境深远，语言优美，值得细细品味。其中蕴含的深刻情感和人生哲理，展现了中华诗词的独特魅力。'
 }
 
+// 获取诗词详情
+const fetchPoemDetail = async (poemId) => {
+  try {
+    loading.value = true
+    
+    // 首先检查是否是用户创作的诗词
+    const userPoems = JSON.parse(localStorage.getItem('user_poems') || '[]')
+    const userPoem = userPoems.find(p => p.id === parseInt(poemId))
+    
+    if (userPoem) {
+      currentPoem.value = userPoem
+      aiAnalysis.value = generateAIAnalysis(currentPoem.value)
+      return
+    }
+    
+    // 如果不是用户创作的，尝试从API获取
+    const response = await fetch(`/api/poetry/${poemId}`)
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    currentPoem.value = data.poem
+    
+    if (currentPoem.value) {
+      aiAnalysis.value = generateAIAnalysis(currentPoem.value)
+    }
+  } catch (error) {
+    console.error('获取诗词详情失败:', error)
+    
+    // 如果API调用失败，使用示例数据
+    const samplePoems = [
+      {
+        id: 1,
+        title: '静夜思',
+        author: '李白',
+        dynasty: '唐',
+        content: '床前明月光，疑是地上霜。举头望明月，低头思故乡。',
+        tags: ['思乡', '月亮', '夜晚'],
+        views: 1560,
+        like_count: 234,
+        comment_count: 45
+      },
+      {
+        id: 2,
+        title: '春晓',
+        author: '孟浩然',
+        dynasty: '唐',
+        content: '春眠不觉晓，处处闻啼鸟。夜来风雨声，花落知多少。',
+        tags: ['春天', '自然', '生活'],
+        views: 1280,
+        like_count: 189,
+        comment_count: 32
+      },
+      {
+        id: 3,
+        title: '登鹳雀楼',
+        author: '王之涣',
+        dynasty: '唐',
+        content: '白日依山尽，黄河入海流。欲穷千里目，更上一层楼。',
+        tags: ['登高', '壮丽', '哲理'],
+        views: 980,
+        like_count: 156,
+        comment_count: 28
+      }
+    ]
+    
+    const poem = samplePoems.find(p => p.id === parseInt(poemId))
+    if (poem) {
+      currentPoem.value = poem
+      aiAnalysis.value = generateAIAnalysis(poem)
+    } else {
+      ElMessage.error('诗词不存在')
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
 const regenerateAnalysis = () => {
   if (currentPoem.value) {
     aiAnalysis.value = generateAIAnalysis(currentPoem.value)
@@ -146,13 +283,91 @@ const regenerateAnalysis = () => {
 }
 
 const addToFavorites = () => {
-  ElMessage.success('赏析已添加到收藏')
+  if (!currentPoem.value) return
+  
+  try {
+    // 从localStorage加载现有收藏
+    const stored = localStorage.getItem('poetry_favorites')
+    let favorites = stored ? JSON.parse(stored) : []
+    
+    // 检查是否已经收藏
+    const existingIndex = favorites.findIndex(fav => fav.id === currentPoem.value.id)
+    
+    if (existingIndex !== -1) {
+      ElMessage.info('这首诗词已经在收藏中了')
+      return
+    }
+    
+    // 添加收藏信息
+    const favoritePoem = {
+      ...currentPoem.value,
+      favoriteTime: new Date().toISOString(),
+      image: getImageByPoemId(currentPoem.value.id)
+    }
+    
+    favorites.unshift(favoritePoem) // 添加到开头
+    
+    // 保存到localStorage
+    localStorage.setItem('poetry_favorites', JSON.stringify(favorites))
+    ElMessage.success('已添加到收藏')
+  } catch (error) {
+    console.error('添加收藏失败:', error)
+    ElMessage.error('添加收藏失败，请重试')
+  }
+}
+
+const sharePoem = () => {
+  if (navigator.share) {
+    navigator.share({
+      title: currentPoem.value.title,
+      text: `${currentPoem.value.title} - ${currentPoem.value.author}`,
+      url: window.location.href
+    })
+  } else {
+    // 复制链接到剪贴板
+    navigator.clipboard.writeText(window.location.href)
+    ElMessage.success('链接已复制到剪贴板')
+  }
+}
+
+const editPoem = () => {
+  ElMessage.info('编辑功能开发中...')
+}
+
+const deletePoem = () => {
+  if (!currentPoem.value) return
+  
+  ElMessageBox.confirm(
+    '确定要删除这首诗词吗？此操作不可恢复。',
+    '确认删除',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  ).then(() => {
+    const userPoems = JSON.parse(localStorage.getItem('user_poems') || '[]')
+    const updatedPoems = userPoems.filter(p => p.id !== currentPoem.value.id)
+    localStorage.setItem('user_poems', JSON.stringify(updatedPoems))
+    
+    ElMessage.success('诗词已删除')
+    router.push('/')
+  }).catch(() => {
+    // 用户取消删除
+  })
 }
 
 onMounted(() => {
-  currentPoem.value = poetryStore.currentPoem
-  if (currentPoem.value) {
-    aiAnalysis.value = generateAIAnalysis(currentPoem.value)
+  const poemId = route.params.id
+  if (poemId) {
+    fetchPoemDetail(poemId)
+  }
+})
+
+// 监听路由参数变化
+watch(() => route.params.id, (newId) => {
+  if (newId) {
+    fetchPoemDetail(newId)
   }
 })
 

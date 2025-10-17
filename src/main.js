@@ -5,6 +5,7 @@ import router from './router'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import { supabase } from '@/config/supabase'
 
 const app = createApp(App)
 
@@ -13,8 +14,11 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
     app.component(key, component)
 }
 
-app.use(createPinia())
+// 初始化Pinia
+const pinia = createPinia()
+app.use(pinia)
 app.use(router)
 app.use(ElementPlus)
 
+// 应用挂载前初始化数据
 app.mount('#app')

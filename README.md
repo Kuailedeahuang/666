@@ -17,6 +17,7 @@
 - **状态管理**: Pinia
 - **路由管理**: Vue Router 4
 - **构建工具**: Vite
+- **后端服务**: Supabase (PostgreSQL + 实时API)
 
 ## 项目结构
 
@@ -37,22 +38,43 @@ src/
 
 ## 快速开始
 
-### 安装依赖
+### 1. 安装依赖
 
 ```bash
 npm install
 ```
 
-### 启动开发服务器
+### 2. 配置Supabase
+
+1. 复制环境变量模板：
+```bash
+cp .env.example .env
+```
+
+2. 在 `.env` 文件中填入您的Supabase配置：
+```env
+VITE_SUPABASE_URL=你的Supabase项目URL
+VITE_SUPABASE_ANON_KEY=你的Supabase匿名密钥
+```
+
+3. 在Supabase控制台执行 `supabase-setup.md` 中的SQL语句创建数据库表
+
+### 3. 启动开发服务器
 
 ```bash
 npm run dev
 ```
 
-### 构建生产版本
+### 4. 构建生产版本
 
 ```bash
 npm run build
+```
+
+### 5. 测试Supabase连接
+
+```bash
+node test-supabase.js
 ```
 
 ## 页面功能
@@ -90,14 +112,21 @@ npm run build
 - 王维《相思》
 - 柳宗元《江雪》
 
+## 已集成功能
+
+✅ **Supabase后端数据库**
+- 诗词数据的CRUD操作
+- 全文搜索功能
+- 用户认证系统
+- 实时数据同步
+
 ## 开发计划
 
 根据需求文档，后续将集成：
-- Supabase后端数据库
 - AI智能体系统
-- 用户认证系统
 - 实时聊天功能
 - 移动端适配
+- 高级数据分析
 
 ## 许可证
 

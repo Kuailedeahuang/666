@@ -26,12 +26,16 @@
     <div class="main-content">
       <router-view />
     </div>
+
+    <!-- AI诗词助手浮窗 -->
+    <AIPoetryAssistant />
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import AIPoetryAssistant from './components/AIPoetryAssistant.vue'
 
 const route = useRoute()
 

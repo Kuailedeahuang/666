@@ -4,6 +4,7 @@ import PoemDetail from '../views/PoemDetail.vue'
 import Favorites from '../views/Favorites.vue'
 import Creation from '../views/Creation.vue'
 import Profile from '../views/Profile.vue'
+import Settings from '../views/Settings.vue'
 
 const routes = [
     {
@@ -30,6 +31,11 @@ const routes = [
         path: '/profile',
         name: 'Profile',
         component: Profile
+    },
+    {
+        path: '/settings/:section?',
+        name: 'Settings',
+        component: Settings
     }
 ]
 
