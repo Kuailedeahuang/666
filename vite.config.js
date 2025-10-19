@@ -34,5 +34,6 @@ export default defineConfig({
         }
       }
     }
-  }
+  },
+  base: './' // 添加base路径配置
 })

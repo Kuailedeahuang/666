@@ -137,7 +137,14 @@ const showSuggestions = ref(false)
 const searchSuggestions = ref([])
 const popularSearches = ref([])
 
-
+// 使用配置的图片URL
+const imageUrls = [
+  'https://ai-public.mastergo.com/ai/img_res/4575dd21f53cf2bdae389e523f74ef43.jpg',
+  'https://ai-public.mastergo.com/ai/img_res/b172092099a902fd1223ef757c2bac1b.jpg',
+  'https://ai-public.mastergo.com/ai/img_res/d84620fed18dfcdfb6de84ba5647efc5.jpg',
+  'https://ai-public.mastergo.com/ai/img_res/787976d0905dc82babc5202a4b9cf69e.jpg',
+  'https://ai-public.mastergo.com/ai/img_res/722337332f17e449e3e27625e0f07e81.jpg'
+]
 
 // 分类与朝代的映射关系
 const categoryToDynasty = {
