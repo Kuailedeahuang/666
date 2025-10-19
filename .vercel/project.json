@@ -1,0 +1,10 @@
+{
+  "projectId": "poetry-appreciation-platform",
+  "orgId": "personal",
+  "settings": {
+    "buildCommand": "npm run build",
+    "outputDirectory": "dist",
+    "devCommand": "npm run dev",
+    "installCommand": "npm install"
+  }
+}

@@ -1,133 +1,55 @@
-# 诗词赏析AI平台
+# 诗词赏析平台
 
-基于Vue.js + Element Plus构建的现代化诗词赏析网站，具备搜索、分类和界面切换功能。
+AI驱动的诗词赏析平台，支持诗词浏览、分类、搜索和智能赏析功能。
 
-## 功能特性
+## 部署说明
 
-- 🔍 **智能搜索**: 支持诗词标题、作者、内容、标签的多维度搜索
-- 📚 **分类浏览**: 按朝代分类浏览诗词作品
-- 🎨 **界面切换**: 首页、学习中心、社区交流三大界面
-- 📱 **响应式设计**: 支持桌面和移动设备
-- 🎯 **AI赏析**: 智能生成诗词赏析内容
+### Vercel 部署
 
-## 技术栈
+项目已配置好Vercel部署，构建输出目录为 `dist`。
 
-- **前端框架**: Vue 3.3+
-- **UI组件库**: Element Plus
-- **状态管理**: Pinia
-- **路由管理**: Vue Router 4
-- **构建工具**: Vite
-- **后端服务**: Supabase (PostgreSQL + 实时API)
+**部署步骤：**
+1. 将代码推送到GitHub仓库
+2. 在Vercel中导入项目
+3. Vercel会自动检测配置并部署
+
+**配置说明：**
+- 构建命令：`npm run build`
+- 输出目录：`dist`
+- 开发命令：`npm run dev`
+
+### 本地开发
+
+```bash
+# 安装依赖
+npm install
+
+# 开发模式
+npm run dev
+
+# 构建生产版本
+npm run build
+
+# 预览构建结果
+npm run preview
+```
 
 ## 项目结构
 
 ```
 src/
-├── App.vue              # 根组件
-├── main.js              # 入口文件
-├── router/              # 路由配置
-│   └── index.js
-├── stores/              # 状态管理
-│   └── poetry.js
-└── views/               # 页面组件
-    ├── Home.vue         # 首页
-    ├── PoemDetail.vue   # 诗词详情页
-    ├── LearningCenter.vue # 学习中心
-    └── Community.vue     # 社区交流
+├── components/     # 通用组件
+├── views/          # 页面组件
+├── router/         # 路由配置
+├── stores/         # 状态管理
+├── config/         # 配置文件
+└── main.js         # 入口文件
 ```
 
-## 快速开始
+## 功能特性
 
-### 1. 安装依赖
-
-```bash
-npm install
-```
-
-### 2. 配置Supabase
-
-1. 复制环境变量模板：
-```bash
-cp .env.example .env
-```
-
-2. 在 `.env` 文件中填入您的Supabase配置：
-```env
-VITE_SUPABASE_URL=你的Supabase项目URL
-VITE_SUPABASE_ANON_KEY=你的Supabase匿名密钥
-```
-
-3. 在Supabase控制台执行 `supabase-setup.md` 中的SQL语句创建数据库表
-
-### 3. 启动开发服务器
-
-```bash
-npm run dev
-```
-
-### 4. 构建生产版本
-
-```bash
-npm run build
-```
-
-### 5. 测试Supabase连接
-
-```bash
-node test-supabase.js
-```
-
-## 页面功能
-
-### 首页 (/)
-- 诗词搜索功能
-- 朝代分类筛选
-- 诗词卡片列表展示
-- 点击卡片查看详情
-
-### 诗词详情页 (/poem/:id)
-- 诗词原文展示
-- AI智能赏析
-- 标签展示
-- 返回列表功能
-
-### 学习中心 (/learning)
-- 学习统计数据展示
-- 学习进度可视化
-- AI个性化学习建议
-- 成就系统
-
-### 社区交流 (/community)
-- 发布诗词赏析
-- 动态分享
-- 热门诗词推荐
-- 活跃用户展示
-
-## 数据示例
-
-项目包含5首经典唐诗作为示例数据：
-- 李白《静夜思》
-- 孟浩然《春晓》
-- 王之涣《登鹳雀楼》
-- 王维《相思》
-- 柳宗元《江雪》
-
-## 已集成功能
-
-✅ **Supabase后端数据库**
-- 诗词数据的CRUD操作
-- 全文搜索功能
-- 用户认证系统
-- 实时数据同步
-
-## 开发计划
-
-根据需求文档，后续将集成：
-- AI智能体系统
-- 实时聊天功能
-- 移动端适配
-- 高级数据分析
-
-## 许可证
-
-MIT License
+- 📚 诗词浏览与分类
+- 🔍 智能搜索功能
+- 🤖 AI智能赏析
+- 💾 本地收藏功能
+- 📱 响应式设计
