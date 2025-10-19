@@ -121,7 +121,7 @@ const analyzeUserIntent = (message) => {
     '爱情': 'theme',
     '思乡': 'theme',
     '离别': 'theme'
-  }
+  };
   
   for (const [keyword, intent] of Object.entries(intents)) {
     if (message.includes(keyword)) {
@@ -143,52 +143,61 @@ const analyzeUserIntent = (message) => {
 
 // 智能AI回复
 const getAIResponse = async (userMessage) => {
-  // 模拟网络延迟
-  await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 800))
-  
   const intent = analyzeUserIntent(userMessage)
   
   try {
-    // 根据意图获取数据
-    let poems = []
-    let searchParams = {}
+    // 构建上下文信息
+    const context = {
+      intent: intent,
+      lastMessages: chatHistory.value.slice(-3).map(msg => ({
+        role: msg.type === 'user' ? 'user' : 'assistant',
+        content: msg.content
+      }))
+    };
     
-    switch (intent.type) {
-      case 'dynasty':
-        searchParams = { dynasty: intent.value }
-        poems = await fetchPoetryData('', intent.value)
-        break
-      case 'author':
-        searchParams = { author: intent.value }
-        poems = await fetchPoetryData('', '', intent.value)
-        break
-      case 'theme':
-        searchParams = { theme: intent.value }
-        poems = await fetchPoetryData('', '', '', intent.value)
-        break
-      case 'recommend':
-        // 随机推荐
-        poems = await fetchPoetryData()
-        break
-      default:
-        poems = await fetchPoetryData(userMessage)
+    // 调用后端AI聊天API
+    const response = await fetch('/api/ai-chat/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: userMessage,
+        context: context
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
     
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || 'AI服务返回错误');
+    }
+    
+    return data.response;
+    
+  } catch (error) {
+    console.error('AI聊天API错误:', error);
+    
+    // 如果AI服务不可用，使用备用回复
+    const poems = await fetchPoetryData(userMessage);
+    
     if (poems.length > 0) {
-      return formatPoetryResponse(poems, intent, userMessage)
+      return formatPoetryResponse(poems, intent, userMessage);
     } else {
-      return `抱歉，我没有找到与"${userMessage}"相关的诗词。
+      return `抱歉，AI服务暂时不可用，请稍后重试。
 
 您可以尝试：
 • 搜索其他关键词
 • 按朝代浏览（如：唐诗、宋词）
 • 按作者搜索（如：李白、苏轼）
-• 按主题搜索（如：春天、山水）`
-    }
-  } catch (error) {
-    return `抱歉，获取数据时出现错误。请稍后再试。
+• 按主题搜索（如：春天、山水）
 
-错误信息：${error.message}`
+错误信息：${error.message}`;
+    }
   }
 }
 

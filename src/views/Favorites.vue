@@ -60,9 +60,7 @@
               </el-button>
             </div>
           </div>
-          <div class="card-image">
-            <img :src="poem.image" :alt="poem.title" class="poem-image" />
-          </div>
+
           <div class="card-content">
             <p class="poem-meta">{{ poem.author }} · {{ poem.dynasty }}</p>
             <p class="poem-content">{{ poem.content }}</p>
@@ -300,16 +298,7 @@ onMounted(() => {
   font-size: 12px;
 }
 
-.card-image {
-  height: 160px;
-  overflow: hidden;
-}
 
-.poem-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
 
 .card-content {
   padding: 16px;

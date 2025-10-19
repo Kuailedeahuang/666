@@ -1,15 +1,17 @@
 <template>
   <div class="home-container">
-    <!-- 轮播图区域 -->
-    <section class="banner-section">
-      <div class="banner-content">
-        <div class="banner-text">
-          <h2 class="poem-title">《静夜思》</h2>
-          <p class="poem-author">李白 · 唐代</p>
-          <p class="poem-content">床前明月光，疑是地上霜。举头望明月，低头思故乡。</p>
+    <!-- 导航栏 -->
+    <header class="page-header">
+      <div class="header-content">
+        <div class="logo-section">
+          <span class="font-logo text-xl">诗韵赏析</span>
+          <h1 class="page-title">首页</h1>
+        </div>
+        <div class="header-actions">
+          <!-- 可以添加首页特有的操作按钮 -->
         </div>
       </div>
-    </section>
+    </header>
 
     <!-- 分类标签导航 -->
     <nav class="category-nav">
@@ -112,6 +114,9 @@
         <el-empty description="未找到相关诗词" />
       </div>
     </main>
+
+    <!-- AI诗词助手 -->
+    <AIPoetryAssistant />
   </div>
 </template>
 
@@ -120,6 +125,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getImageByPoemId } from '../config/images.js'
+import AIPoetryAssistant from '../components/AIPoetryAssistant.vue'
 
 const router = useRouter()
 
@@ -389,8 +395,7 @@ const toggleFavorite = (poem) => {
       // 添加收藏
       const favoritePoem = {
         ...poem,
-        favoriteTime: new Date().toISOString(),
-        image: getImageByPoemId(poem.id)
+        favoriteTime: new Date().toISOString()
       }
       favorites.unshift(favoritePoem)
       ElMessage.success('已添加到收藏')
@@ -471,6 +476,32 @@ onMounted(() => {
 .home-container {
   min-height: 100vh;
   background: #f9f9f9;
+}
+
+.page-header {
+  background: #1f2937;
+  color: white;
+  padding: 16px 20px;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0;
 }
 
 .banner-section {

@@ -13,6 +13,7 @@ import userRoutes from './routes/users.js'
 import analysisRoutes from './routes/analysis.js'
 import favoritesRoutes from './routes/favorites.js'
 import databaseRoutes from './routes/database.js'
+import aiChatRoutes from './routes/ai-chat.js'
 
 // 加载环境变量
 dotenv.config()
@@ -72,6 +73,7 @@ app.use('/api/users', userRoutes)
 app.use('/api/analysis', analysisRoutes)
 app.use('/api/favorites', favoritesRoutes)
 app.use('/api/database', databaseRoutes)
+app.use('/api/ai-chat', aiChatRoutes)
 
 // 404处理
 app.use('*', (req, res) => {

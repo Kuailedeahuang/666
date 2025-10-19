@@ -301,8 +301,7 @@ const addToFavorites = () => {
     // 添加收藏信息
     const favoritePoem = {
       ...currentPoem.value,
-      favoriteTime: new Date().toISOString(),
-      image: getImageByPoemId(currentPoem.value.id)
+      favoriteTime: new Date().toISOString()
     }
     
     favorites.unshift(favoritePoem) // 添加到开头

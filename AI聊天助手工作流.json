@@ -1,0 +1,240 @@
+{
+  "name": "AI聊天助手工作流",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "/webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "bcbfad0c-0fe6-4151-8a8f-1f2e40bb963f",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -656,
+        112
+      ],
+      "webhookId": "ai-chat-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 处理接收到的消息\nconst message = $input.first().json;\n\n// 提取用户输入和上下文\nconst userInput = message.text || message.message || '';\nconst context = message.context || {};\nconst userId = message.userId || 'anonymous';\n\n// 返回处理后的数据\nreturn {\n  userId: userId,\n  userInput: userInput.trim(),\n  context: context,\n  timestamp: new Date().toISOString(),\n  sessionId: message.sessionId || `session_${Date.now()}`\n};"
+      },
+      "id": "0b142bef-bff7-4103-8853-cecce34ce51b",
+      "name": "处理消息输入",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "1",
+              "leftValue": "={{ $json.userInput }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4bbbf5da-e54d-4f0f-8e8c-358c5b835a6b",
+      "name": "检查输入是否为空",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        112
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "a535cfae-5ae2-4c80-b363-c6500a762307",
+      "name": "返回空输入错误",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "deepSeekApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-3.5-turbo"
+            },
+            {
+              "name": "messages",
+              "value": "={{\n  [\n    {\n      role: 'system',\n      content: '你是一个友好的AI聊天助手，请用中文回答用户的问题。保持回答简洁、有帮助。'\n    },\n    {\n      role: 'user',\n      content: $json.userInput\n    }\n  ]\n}}"
+            },
+            {
+              "name": "max_tokens",
+              "value": "500"
+            },
+            {
+              "name": "temperature",
+              "value": "0.7"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b6bfa5b1-bbe9-4120-9577-605a1605f411",
+      "name": "调用AI API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        0,
+        208
+      ],
+      "credentials": {
+        "deepSeekApi": {
+          "id": "1zF2NcZlUZv8adlX",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 处理AI API响应\nconst aiResponse = $input.first().json;\n\nif (aiResponse.choices && aiResponse.choices.length > 0) {\n  const message = aiResponse.choices[0].message;\n  \n  return {\n    success: true,\n    response: message.content,\n    usage: aiResponse.usage,\n    model: aiResponse.model,\n    timestamp: new Date().toISOString(),\n    userId: $json.userId,\n    sessionId: $json.sessionId\n  };\n} else {\n  return {\n    success: false,\n    error: 'AI API返回异常',\n    rawResponse: aiResponse,\n    timestamp: new Date().toISOString()\n  };\n}"
+      },
+      "id": "b8d793b2-c031-4288-8375-759156a5c54a",
+      "name": "处理AI响应",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        208
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "5dfc9a80-aeec-4b30-a0a4-0acd7cd37bc8",
+      "name": "返回成功响应",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        208
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "1156a245-d32b-4570-b75c-ee1b224cca88",
+      "name": "返回AI错误响应",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        304
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "处理消息输入",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "处理消息输入": {
+      "main": [
+        [
+          {
+            "node": "检查输入是否为空",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "检查输入是否为空": {
+      "main": [
+        [
+          {
+            "node": "返回空输入错误",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "调用AI API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "调用AI API": {
+      "main": [
+        [
+          {
+            "node": "处理AI响应",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "处理AI响应": {
+      "main": [
+        [
+          {
+            "node": "返回成功响应",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "afa8a96c-0318-43e1-bce3-91da8eb03c6d",
+  "meta": {
+    "instanceId": "4783fdc37c11482f8d9765511d7acb0935fa3d44c325b83cdebdd1f8f62d937d"
+  },
+  "id": "QhrSMhchv0ForV78",
+  "tags": []
+}
