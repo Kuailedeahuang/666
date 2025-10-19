@@ -11,7 +11,7 @@ export default defineConfig({
     cors: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:3003',
+        target: 'http://localhost:3001',
         changeOrigin: true,
         secure: false
       }
@@ -35,5 +35,10 @@ export default defineConfig({
       }
     }
   },
-  base: './' // 添加base路径配置
+  // 生产环境配置
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV)
+  },
+  // 基础路径设置
+  base: process.env.NODE_ENV === 'production' ? '/' : '/'
 })

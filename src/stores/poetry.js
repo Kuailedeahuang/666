@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { supabaseAPI } from '@/config/supabase'
+import { http } from '@/utils/http.js'
 
 export const usePoetryStore = defineStore('poetry', {
     state: () => ({
@@ -43,11 +44,7 @@ export const usePoetryStore = defineStore('poetry', {
         // 从后端API加载随机诗词数据
         async loadPoems() {
             try {
-                const response = await fetch('/api/poetry/random?limit=20')
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`)
-                }
-                const data = await response.json()
+                const data = await http.get('/poetry/random?limit=20')
                 this.poems = data || []
             } catch (error) {
                 console.error('加载诗词数据失败:', error)

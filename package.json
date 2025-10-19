@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "dev:full": "concurrently \"npm run dev\" \"cd server && npm run dev\"",
     "start:backend": "cd server && npm start",
-    "install:all": "npm install && cd server && npm install"
+    "install:all": "npm install && cd server && npm install",
+    "vercel-build": "node vercel-build.js"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.1.0",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.2.0",
-    "vite": "^4.4.0"
+    "vite": "^4.4.0",
+    "concurrently": "^8.2.0"
   }
 }

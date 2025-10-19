@@ -55,6 +55,7 @@
 
 <script setup>
 import { ref, computed, nextTick, onMounted } from 'vue'
+import { http } from '@/utils/http.js'
 
 const isOpen = ref(false)
 const isLoading = ref(false)
@@ -82,8 +83,7 @@ const fetchPoetryData = async (query = '', dynasty = '', author = '', theme = ''
     if (theme) params.append('theme', theme)
     params.append('limit', '5')
     
-    const response = await fetch(`http://localhost:3001/api/poetry/?${params}`)
-    const data = await response.json()
+    const data = await http.get(`/poetry/?${params}`)
     return data.poems || []
   } catch (error) {
     console.error('获取诗词数据失败:', error)
@@ -156,22 +156,10 @@ const getAIResponse = async (userMessage) => {
     };
     
     // 调用后端AI聊天API
-    const response = await fetch('/api/ai-chat/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        message: userMessage,
-        context: context
-      })
+    const data = await http.post('/ai-chat/chat', {
+      message: userMessage,
+      context: context
     });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
     
     if (!data.success) {
       throw new Error(data.error || 'AI服务返回错误');

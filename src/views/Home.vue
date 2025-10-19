@@ -126,6 +126,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getImageByPoemId } from '../config/images.js'
 import AIPoetryAssistant from '../components/AIPoetryAssistant.vue'
+import { http } from '../utils/http.js'
 
 const router = useRouter()
 
@@ -179,11 +180,8 @@ const fetchSearchSuggestions = async (query) => {
   }
   
   try {
-    const response = await fetch(`/api/poetry/search/suggestions?query=${encodeURIComponent(query)}`)
-    if (response.ok) {
-      const data = await response.json()
-      searchSuggestions.value = data.suggestions || []
-    }
+    const data = await http.get(`/poetry/search/suggestions?query=${encodeURIComponent(query)}`)
+    searchSuggestions.value = data.suggestions || []
   } catch (error) {
     console.error('获取搜索建议失败:', error)
     searchSuggestions.value = []
@@ -193,11 +191,8 @@ const fetchSearchSuggestions = async (query) => {
 // 获取热门搜索
 const fetchPopularSearches = async () => {
   try {
-    const response = await fetch('/api/poetry/search/popular?limit=8')
-    if (response.ok) {
-      const data = await response.json()
-      popularSearches.value = data.popularSearches || []
-    }
+    const data = await http.get('/poetry/search/popular?limit=8')
+    popularSearches.value = data.popularSearches || []
   } catch (error) {
     console.error('获取热门搜索失败:', error)
     popularSearches.value = [
@@ -218,25 +213,20 @@ const fetchPoems = async () => {
     const dynasty = categoryToDynasty[selectedCategory.value]
     const category = selectedCategory.value
     
-    let response
+    let data
     
     if (dynasty) {
       // 如果选择了特定朝代，使用朝代过滤API
-      response = await fetch(`/api/poetry/?dynasty=${dynasty}&limit=12`)
+      data = await http.get(`/poetry/?dynasty=${dynasty}&limit=12`)
     } else if (category === '山水诗' || category === '边塞诗' || category === '爱情诗' || category === '思乡诗' || category === '哲理诗' || category === '友情诗' || category === '田园诗' || category === '咏史诗') {
       // 如果选择了主题分类，使用分类过滤API（正确的路由格式）
       const categoryId = categoryToId[category]
-      response = await fetch(`/api/poetry/categories/${encodeURIComponent(categoryId)}?limit=12`)
+      data = await http.get(`/poetry/categories/${encodeURIComponent(categoryId)}?limit=12`)
     } else {
       // 否则使用随机诗词API
-      response = await fetch('/api/poetry/random?limit=12')
+      data = await http.get('/poetry/random?limit=12')
     }
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-    
-    const data = await response.json()
     poems.value = data.poems || data || []
     
   } catch (error) {
@@ -290,13 +280,7 @@ const searchPoems = async () => {
       params.append('category', categoryId)
     }
     
-    const response = await fetch(`/api/poetry/search?${params}`)
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-    
-    const data = await response.json()
+    const data = await http.get(`/poetry/search?${params}`)
     poems.value = data.poems || []
     
   } catch (error) {
