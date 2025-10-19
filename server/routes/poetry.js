@@ -8,8 +8,35 @@ const router = express.Router()
 // 获取诗词列表（支持分页、搜索、过滤）
 router.get('/', validate(paginationSchema, { query: true }), async (req, res) => {
   try {
-    const { page, limit, sort, order, dynasty, author, tags, category } = req.query
+    // 手动解析URL参数，因为Express.js可能没有正确解析中文参数
+    const parsedUrl = new URL(req.url, `http://${req.headers.host}`)
+    const queryParams = Object.fromEntries(parsedUrl.searchParams)
+    
+    let { page, limit, sort, order, dynasty, author, tags, category } = queryParams
+    
+    // 确保分页参数是数字类型
+    page = parseInt(page) || 1
+    limit = parseInt(limit) || 20
     const offset = (page - 1) * limit
+    
+    // 调试：查看原始查询参数
+    console.log(`原始查询参数:`, queryParams)
+    console.log(`原始URL: ${req.url}`)
+    
+    // URL解码参数（如果参数已经被编码）
+    if (dynasty) {
+      // 检查参数是否已经被自动解码
+      const originalDynasty = dynasty
+      try {
+        dynasty = decodeURIComponent(dynasty)
+        console.log(`解码后的朝代参数: "${dynasty}" (原始: "${originalDynasty}")`)
+      } catch (e) {
+        console.log(`参数已经是解码状态: "${dynasty}"`)
+      }
+    }
+    if (author) author = decodeURIComponent(author)
+    if (tags) tags = decodeURIComponent(tags)
+    if (category) category = decodeURIComponent(category)
 
     // 尝试从数据库获取数据
     try {
@@ -20,12 +47,17 @@ router.get('/', validate(paginationSchema, { query: true }), async (req, res) =>
           user:users(username, avatar_url),
           likes:poem_likes(count),
           comments:poem_comments(count)
-        `)
+        `, { count: 'exact' })
         .eq('status', 'published')
 
       // 朝代过滤
       if (dynasty && dynasty !== '全部') {
+        console.log(`应用朝代过滤: ${dynasty}`)
         query = query.eq('dynasty', dynasty)
+      } else if (dynasty === '全部') {
+        console.log('显示所有朝代，不应用过滤')
+      } else {
+        console.log('未指定朝代或朝代为空，不应用过滤')
       }
 
       // 作者过滤
@@ -55,14 +87,25 @@ router.get('/', validate(paginationSchema, { query: true }), async (req, res) =>
       }
 
       // 分页
+      console.log(`分页参数: offset=${offset}, limit=${limit}`)
       query = query.range(offset, offset + limit - 1)
 
+      console.log('最终查询构建:', query)
       const { data: poems, error, count } = await query
 
-      if (error) throw error
+      if (error) {
+        console.error('数据库查询错误详情:', error)
+        console.error('错误消息:', error.message)
+        console.error('错误详情:', error.details)
+        console.error('错误提示:', error.hint)
+        throw error
+      }
 
-      // 如果成功获取数据，返回数据库数据
-      if (poems && poems.length > 0) {
+      console.log(`数据库查询结果: ${poems ? poems.length : 0} 条记录, 朝代过滤: ${dynasty || '无'}`)
+      console.log('查询总数:', count)
+      
+      // 如果成功获取数据（包括空结果），返回数据库数据
+      if (poems) {
         return res.json({
           poems: poems || [],
           pagination: {
@@ -79,7 +122,13 @@ router.get('/', validate(paginationSchema, { query: true }), async (req, res) =>
     }
 
     // 如果数据库查询失败或没有数据，返回示例数据
-    const samplePoems = getSamplePoems()
+    let samplePoems = getSamplePoems()
+    
+    // 对示例数据进行朝代过滤
+    if (dynasty && dynasty !== '全部') {
+      samplePoems = samplePoems.filter(poem => poem.dynasty === dynasty)
+    }
+    
     const startIndex = offset
     const endIndex = Math.min(startIndex + parseInt(limit), samplePoems.length)
     const paginatedPoems = samplePoems.slice(startIndex, endIndex)
@@ -692,6 +741,118 @@ function getSamplePoems() {
         username: 'poetry_lover',
         avatar: null
       }
+    },
+    {
+      id: '9',
+      title: '山坡羊·潼关怀古',
+      author: '张养浩',
+      dynasty: '元',
+      content: '峰峦如聚，波涛如怒，山河表里潼关路。望西都，意踌躇。伤心秦汉经行处，宫阙万间都做了土。兴，百姓苦；亡，百姓苦。',
+      tags: ['怀古', '民生', '社会'],
+      views: 819,
+      like_count: 2,
+      comment_count: 0,
+      created_at: '2024-01-09T00:00:00Z',
+      user: {
+        username: 'admin',
+        avatar: null
+      }
+    },
+    {
+      id: '10',
+      title: '临江仙',
+      author: '杨慎',
+      dynasty: '明',
+      content: '滚滚长江东逝水，浪花淘尽英雄。是非成败转头空。青山依旧在，几度夕阳红。白发渔樵江渚上，惯看秋月春风。一壶浊酒喜相逢。古今多少事，都付笑谈中。',
+      tags: ['历史', '人生', '哲理'],
+      views: 150,
+      like_count: 1,
+      comment_count: 0,
+      created_at: '2024-01-10T00:00:00Z',
+      user: {
+        username: 'classic_reader',
+        avatar: null
+      }
+    },
+    {
+      id: '11',
+      title: '再别康桥',
+      author: '徐志摩',
+      dynasty: '现代',
+      content: '轻轻的我走了，正如我轻轻的来；我轻轻的招手，作别西天的云彩。那河畔的金柳，是夕阳中的新娘；波光里的艳影，在我的心头荡漾。',
+      tags: ['离别', '康桥', '现代'],
+      views: 496,
+      like_count: 1,
+      comment_count: 0,
+      created_at: '2024-01-11T00:00:00Z',
+      user: {
+        username: 'poetry_lover',
+        avatar: null
+      }
+    },
+    {
+      id: '12',
+      title: '乡愁',
+      author: '余光中',
+      dynasty: '现代',
+      content: '小时候，乡愁是一枚小小的邮票，我在这头，母亲在那头。长大后，乡愁是一张窄窄的船票，我在这头，新娘在那头。后来啊，乡愁是一方矮矮的坟墓，我在外头，母亲在里头。而现在，乡愁是一湾浅浅的海峡，我在这头，大陆在那头。',
+      tags: ['乡愁', '思念', '现代'],
+      views: 602,
+      like_count: 2,
+      comment_count: 0,
+      created_at: '2024-01-12T00:00:00Z',
+      user: {
+        username: 'admin',
+        avatar: null
+      }
+    },
+    {
+      id: '13',
+      title: '雨巷',
+      author: '戴望舒',
+      dynasty: '现代',
+      content: '撑着油纸伞，独自彷徨在悠长、悠长又寂寥的雨巷，我希望逢着一个丁香一样地结着愁怨的姑娘。',
+      tags: ['雨巷', '忧愁', '现代'],
+      views: 874,
+      like_count: 2,
+      comment_count: 0,
+      created_at: '2024-01-13T00:00:00Z',
+      user: {
+        username: 'classic_reader',
+        avatar: null
+      }
+    },
+    {
+      id: '14',
+      title: '致橡树',
+      author: '舒婷',
+      dynasty: '现代',
+      content: '我如果爱你——绝不像攀援的凌霄花，借你的高枝炫耀自己；我如果爱你——绝不学痴情的鸟儿，为绿荫重复单调的歌曲；也不止像泉源，常年送来清凉的慰藉；也不止像险峰，增加你的高度，衬托你的威仪。',
+      tags: ['爱情', '独立', '现代'],
+      views: 339,
+      like_count: 2,
+      comment_count: 0,
+      created_at: '2024-01-14T00:00:00Z',
+      user: {
+        username: 'poetry_lover',
+        avatar: null
+      }
+    },
+    {
+      id: '15',
+      title: '石灰吟',
+      author: '于谦',
+      dynasty: '明',
+      content: '千锤万凿出深山，烈火焚烧若等闲。粉骨碎身浑不怕，要留清白在人间。',
+      tags: ['爱国', '清白', '牺牲'],
+      views: 181,
+      like_count: 1,
+      comment_count: 0,
+      created_at: '2024-01-15T00:00:00Z',
+      user: {
+        username: 'admin',
+        avatar: null
+      }
     }
   ]
 }
@@ -740,6 +901,95 @@ router.get('/random', async (req, res) => {
     const shuffledPoems = samplePoems.sort(() => Math.random() - 0.5).slice(0, parseInt(req.query.limit) || 8)
     
     res.json(shuffledPoems)
+  }
+})
+
+// 获取所有分类
+router.get('/categories', async (req, res) => {
+  try {
+    const categories = [
+      { id: 'landscape', name: '山水诗', description: '描写自然山水景色的诗歌', icon: '🏞️' },
+      { id: 'frontier', name: '边塞诗', description: '描写边疆战争和军旅生活的诗歌', icon: '⚔️' },
+      { id: 'love', name: '爱情诗', description: '表达爱情和思念的诗歌', icon: '💕' },
+      { id: 'nostalgia', name: '思乡诗', description: '表达对故乡思念的诗歌', icon: '🏠' },
+      { id: 'philosophy', name: '哲理诗', description: '蕴含人生哲理的诗歌', icon: '🧠' },
+      { id: 'friendship', name: '友情诗', description: '歌颂友谊的诗歌', icon: '🤝' },
+      { id: 'nature', name: '田园诗', description: '描写田园生活和自然风光的诗歌', icon: '🌾' },
+      { id: 'history', name: '咏史诗', description: '咏叹历史人物和事件的诗歌', icon: '📜' }
+    ]
+    
+    res.json({
+      categories,
+      total: categories.length,
+      message: '分类列表获取成功'
+    })
+  } catch (error) {
+    console.error('获取分类列表错误:', error)
+    res.status(500).json({
+      error: '获取分类失败',
+      message: error.message
+    })
+  }
+})
+
+// 获取分类详情
+router.get('/categories/:categoryId', async (req, res) => {
+  try {
+    const { categoryId } = req.params
+    const { page = 1, limit = 12 } = req.query
+    
+    const categoryMap = {
+      landscape: { name: '山水诗', tags: ['山水', '自然', '风景'] },
+      frontier: { name: '边塞诗', tags: ['边塞', '战争', '军旅'] },
+      love: { name: '爱情诗', tags: ['爱情', '相思', '恋情'] },
+      nostalgia: { name: '思乡诗', tags: ['思乡', '故乡', '怀旧'] },
+      philosophy: { name: '哲理诗', tags: ['哲理', '人生', '感悟'] },
+      friendship: { name: '友情诗', tags: ['友情', '送别', '思念'] },
+      nature: { name: '田园诗', tags: ['田园', '农家', '自然'] },
+      history: { name: '咏史诗', tags: ['历史', '怀古', '人物'] }
+    }
+    
+    const category = categoryMap[categoryId]
+    if (!category) {
+      return res.status(404).json({
+        error: '分类不存在',
+        message: `分类ID ${categoryId} 不存在`
+      })
+    }
+    
+    // 根据分类标签查询诗词
+    const offset = (page - 1) * limit
+    let query = supabase
+      .from('poems')
+      .select('*', { count: 'exact' })
+      .eq('status', 'published')
+      .overlaps('tags', category.tags)
+    
+    const { data: poems, error: dbError, count } = await query
+      .range(offset, offset + limit - 1)
+    
+    if (dbError) throw dbError
+    
+    res.json({
+      category: {
+        id: categoryId,
+        ...category,
+        poemCount: count || 0
+      },
+      poems: poems || [],
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit)
+      }
+    })
+  } catch (error) {
+    console.error('获取分类详情错误:', error)
+    res.status(500).json({
+      error: '获取分类详情失败',
+      message: error.message
+    })
   }
 })
 
@@ -1028,6 +1278,95 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
     res.status(500).json({
       error: '点赞操作失败',
       message: error.message || '服务器内部错误'
+    })
+  }
+})
+
+// 获取所有分类
+router.get('/categories', async (req, res) => {
+  try {
+    const categories = [
+      { id: 'landscape', name: '山水诗', description: '描写自然山水景色的诗歌', icon: '🏞️' },
+      { id: 'frontier', name: '边塞诗', description: '描写边疆战争和军旅生活的诗歌', icon: '⚔️' },
+      { id: 'love', name: '爱情诗', description: '表达爱情和思念的诗歌', icon: '💕' },
+      { id: 'nostalgia', name: '思乡诗', description: '表达对故乡思念的诗歌', icon: '🏠' },
+      { id: 'philosophy', name: '哲理诗', description: '蕴含人生哲理的诗歌', icon: '🧠' },
+      { id: 'friendship', name: '友情诗', description: '歌颂友谊的诗歌', icon: '🤝' },
+      { id: 'nature', name: '田园诗', description: '描写田园生活和自然风光的诗歌', icon: '🌾' },
+      { id: 'history', name: '咏史诗', description: '咏叹历史人物和事件的诗歌', icon: '📜' }
+    ]
+    
+    res.json({
+      categories,
+      total: categories.length,
+      message: '分类列表获取成功'
+    })
+  } catch (error) {
+    console.error('获取分类列表错误:', error)
+    res.status(500).json({
+      error: '获取分类失败',
+      message: error.message
+    })
+  }
+})
+
+// 获取分类详情
+router.get('/categories/:categoryId', async (req, res) => {
+  try {
+    const { categoryId } = req.params
+    const { page = 1, limit = 12 } = req.query
+    
+    const categoryMap = {
+      landscape: { name: '山水诗', tags: ['山水', '自然', '风景'] },
+      frontier: { name: '边塞诗', tags: ['边塞', '战争', '军旅'] },
+      love: { name: '爱情诗', tags: ['爱情', '相思', '恋情'] },
+      nostalgia: { name: '思乡诗', tags: ['思乡', '故乡', '怀旧'] },
+      philosophy: { name: '哲理诗', tags: ['哲理', '人生', '感悟'] },
+      friendship: { name: '友情诗', tags: ['友情', '送别', '思念'] },
+      nature: { name: '田园诗', tags: ['田园', '农家', '自然'] },
+      history: { name: '咏史诗', tags: ['历史', '怀古', '人物'] }
+    }
+    
+    const category = categoryMap[categoryId]
+    if (!category) {
+      return res.status(404).json({
+        error: '分类不存在',
+        message: `分类ID ${categoryId} 不存在`
+      })
+    }
+    
+    // 根据分类标签查询诗词
+    const offset = (page - 1) * limit
+    let query = supabase
+      .from('poems')
+      .select('*', { count: 'exact' })
+      .eq('status', 'published')
+      .overlaps('tags', category.tags)
+    
+    const { data: poems, error: dbError, count } = await query
+      .range(offset, offset + limit - 1)
+    
+    if (dbError) throw dbError
+    
+    res.json({
+      category: {
+        id: categoryId,
+        ...category,
+        poemCount: count || 0
+      },
+      poems: poems || [],
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit)
+      }
+    })
+  } catch (error) {
+    console.error('获取分类详情错误:', error)
+    res.status(500).json({
+      error: '获取分类详情失败',
+      message: error.message
     })
   }
 })

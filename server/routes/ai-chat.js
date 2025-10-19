@@ -3,9 +3,10 @@ import axios from 'axios';
 
 const router = express.Router();
 
-// DeepSeek API配置
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
+// n8n工作流配置
+const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/ai-chat-webhook';
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'your-deepseek-api-key-here';
+const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
 // 系统提示词 - 专门针对诗词赏析的AI助手
 const SYSTEM_PROMPT = `你是一个专业的诗词赏析AI助手，专门帮助用户理解和欣赏中国古典诗词。
@@ -21,7 +22,7 @@ const SYSTEM_PROMPT = `你是一个专业的诗词赏析AI助手，专门帮助�
 
 请用中文回答用户的问题。`;
 
-// AI聊天接口
+// AI聊天接口 - 调用n8n工作流
 router.post('/chat', async (req, res) => {
   try {
     const { message, context = {} } = req.body;
@@ -34,65 +35,105 @@ router.post('/chat', async (req, res) => {
       });
     }
 
-    // 构建消息历史
-    const messages = [
-      {
-        role: 'system',
-        content: SYSTEM_PROMPT
+    // 构建n8n工作流请求数据
+    const workflowData = {
+      text: message.trim(),
+      message: message.trim(),
+      context: context,
+      userId: req.user?.id || 'anonymous',
+      sessionId: context.sessionId || `session_${Date.now()}`
+    };
+
+    try {
+      // 首先尝试调用n8n工作流
+      const response = await axios.post(N8N_WEBHOOK_URL, workflowData, {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000 // 10秒超时
+      });
+
+      const workflowResponse = response.data;
+
+      if (workflowResponse.success) {
+        res.json({
+          success: true,
+          response: workflowResponse.response,
+          usage: workflowResponse.usage,
+          model: workflowResponse.model,
+          timestamp: workflowResponse.timestamp || new Date().toISOString(),
+          source: 'n8n-workflow'
+        });
+      } else {
+        throw new Error(workflowResponse.error || 'n8n工作流返回异常');
       }
-    ];
-
-    // 添加上下文消息（如果有）
-    if (context.messages && Array.isArray(context.messages)) {
-      context.messages.forEach(msg => {
-        if (msg.role && msg.content) {
-          messages.push({
-            role: msg.role,
-            content: msg.content
-          });
-        }
-      });
-    }
-
-    // 添加当前用户消息
-    messages.push({
-      role: 'user',
-      content: message.trim()
-    });
-
-    // 调用DeepSeek API
-    const response = await axios.post(DEEPSEEK_API_URL, {
-      model: 'deepseek-chat',
-      messages: messages,
-      max_tokens: 1000,
-      temperature: 0.7,
-      stream: false
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
-      },
-      timeout: 30000 // 30秒超时
-    });
-
-    const aiResponse = response.data;
-
-    if (aiResponse.choices && aiResponse.choices.length > 0) {
-      const assistantMessage = aiResponse.choices[0].message;
+    } catch (n8nError) {
+      console.log('n8n工作流不可用，尝试备用AI服务:', n8nError.message);
       
-      res.json({
-        success: true,
-        response: assistantMessage.content,
-        usage: aiResponse.usage,
-        model: aiResponse.model,
-        timestamp: new Date().toISOString()
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        error: 'AI API返回异常',
-        rawResponse: aiResponse
-      });
+      // 检查DeepSeek API密钥是否有效
+      if (!DEEPSEEK_API_KEY || DEEPSEEK_API_KEY === 'your-deepseek-api-key-here') {
+        res.status(503).json({
+          success: false,
+          error: 'AI服务暂时不可用',
+          details: '请配置有效的DeepSeek API密钥或确保n8n工作流服务正常运行',
+          suggestion: '请联系管理员配置AI服务或检查n8n工作流状态'
+        });
+        return;
+      }
+      
+      try {
+        // 备用方案：直接调用DeepSeek API
+        const messages = [
+          {
+            role: 'system',
+            content: SYSTEM_PROMPT
+          },
+          {
+            role: 'user',
+            content: message.trim()
+          }
+        ];
+
+        const aiResponse = await axios.post(DEEPSEEK_API_URL, {
+          model: 'deepseek-chat',
+          messages: messages,
+          max_tokens: 1000,
+          temperature: 0.7,
+          stream: false
+        }, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+          },
+          timeout: 30000
+        });
+
+        const aiData = aiResponse.data;
+
+        if (aiData.choices && aiData.choices.length > 0) {
+          const assistantMessage = aiData.choices[0].message;
+          
+          res.json({
+            success: true,
+            response: assistantMessage.content,
+            usage: aiData.usage,
+            model: aiData.model,
+            timestamp: new Date().toISOString(),
+            source: 'deepseek-api'
+          });
+        } else {
+          throw new Error('AI API返回异常');
+        }
+      } catch (aiError) {
+        console.error('备用AI服务也失败:', aiError.message);
+        
+        res.status(503).json({
+          success: false,
+          error: 'AI服务暂时不可用',
+          details: 'n8n工作流和备用AI服务均不可用',
+          suggestion: '请稍后重试或联系管理员检查AI服务状态'
+        });
+      }
     }
 
   } catch (error) {
@@ -100,17 +141,26 @@ router.post('/chat', async (req, res) => {
     
     // 处理不同的错误类型
     if (error.response) {
-      // API返回错误
-      res.status(error.response.status).json({
-        success: false,
-        error: `AI服务错误: ${error.response.status} ${error.response.statusText}`,
-        details: error.response.data
-      });
+      // n8n工作流返回错误
+      if (error.response.status === 401) {
+        res.status(401).json({
+          success: false,
+          error: 'n8n工作流认证失败，请检查n8n配置',
+          details: '请确保n8n服务正常运行且webhook配置正确'
+        });
+      } else {
+        res.status(error.response.status).json({
+          success: false,
+          error: `n8n工作流错误: ${error.response.status} ${error.response.statusText}`,
+          details: error.response.data
+        });
+      }
     } else if (error.request) {
-      // 网络错误
+      // 网络错误 - n8n服务不可达
       res.status(503).json({
         success: false,
-        error: 'AI服务暂时不可用，请检查网络连接'
+        error: 'n8n工作流服务暂时不可用，请检查n8n服务状态',
+        details: '请确保n8n服务在localhost:5678端口正常运行'
       });
     } else {
       // 其他错误

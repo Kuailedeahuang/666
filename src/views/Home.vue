@@ -157,7 +157,19 @@ const categoryToDynasty = {
   '边塞诗': ''
 }
 
-const categories = ref(['全部', '唐诗', '宋词', '元曲', '现代诗', '山水诗', '边塞诗'])
+// 中文分类名称到英文分类ID的映射
+const categoryToId = {
+  '山水诗': 'landscape',
+  '爱情诗': 'love',
+  '边塞诗': 'frontier',
+  '思乡诗': 'nostalgia',
+  '哲理诗': 'philosophy',
+  '友情诗': 'friendship',
+  '田园诗': 'nature',
+  '咏史诗': 'history'
+}
+
+const categories = ref(['全部', '唐诗', '宋词', '元曲', '现代诗', '山水诗', '边塞诗', '爱情诗'])
 
 // 获取搜索建议
 const fetchSearchSuggestions = async (query) => {
@@ -211,9 +223,10 @@ const fetchPoems = async () => {
     if (dynasty) {
       // 如果选择了特定朝代，使用朝代过滤API
       response = await fetch(`/api/poetry/?dynasty=${dynasty}&limit=12`)
-    } else if (category === '山水诗' || category === '边塞诗') {
-      // 如果选择了主题分类，使用分类过滤API
-      response = await fetch(`/api/poetry/?category=${encodeURIComponent(category)}&limit=12`)
+    } else if (category === '山水诗' || category === '边塞诗' || category === '爱情诗' || category === '思乡诗' || category === '哲理诗' || category === '友情诗' || category === '田园诗' || category === '咏史诗') {
+      // 如果选择了主题分类，使用分类过滤API（正确的路由格式）
+      const categoryId = categoryToId[category]
+      response = await fetch(`/api/poetry/categories/${encodeURIComponent(categoryId)}?limit=12`)
     } else {
       // 否则使用随机诗词API
       response = await fetch('/api/poetry/random?limit=12')
@@ -271,8 +284,10 @@ const searchPoems = async () => {
     
     if (dynasty) {
       params.append('dynasty', dynasty)
-    } else if (category === '山水诗' || category === '边塞诗') {
-      params.append('category', category)
+    } else if (category === '山水诗' || category === '边塞诗' || category === '爱情诗' || category === '思乡诗' || category === '哲理诗' || category === '友情诗' || category === '田园诗' || category === '咏史诗') {
+      // 使用分类搜索API
+      const categoryId = categoryToId[category]
+      params.append('category', categoryId)
     }
     
     const response = await fetch(`/api/poetry/search?${params}`)
@@ -305,7 +320,7 @@ const searchPoems = async () => {
       }
       
       // 如果指定了主题分类，还需要匹配标签
-      if (category === '山水诗' || category === '边塞诗') {
+      if (category === '山水诗' || category === '边塞诗' || category === '爱情诗' || category === '思乡诗' || category === '哲理诗' || category === '友情诗' || category === '田园诗' || category === '咏史诗') {
         const categoryTags = getCategoryTags(category)
         return matchesSearch && poem.tags && poem.tags.some(tag => categoryTags.includes(tag))
       }
